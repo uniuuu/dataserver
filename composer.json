@@ -1,7 +1,7 @@
 {
 	"name": "zotero/dataserver",
 	"description": "Zotero Sync and API Server",
-	"license": "AGPL-3.0",
+	"license": "AGPL-3.0-only",
 	"require": {
 		"aws/aws-sdk-php": "^3.2",
 		"doctrine/cache": "1.*"
