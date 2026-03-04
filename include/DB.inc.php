@@ -342,6 +342,22 @@ class Zotero_DB {
 	
 	
 	/**
+	 * Get the host of the current connection for a shard, or null if no connection exists.
+	 */
+	public static function getShardHost($shardID) {
+		$instance = self::getInstance();
+		// Check both replica and primary connections
+		if (isset($instance->replicaConnections[$shardID])) {
+			return 'replica:' . ($instance->replicaConnections[$shardID][0]->host ?? '?');
+		}
+		if (isset($instance->connections[$shardID])) {
+			return 'primary:' . ($instance->connections[$shardID]->host ?? '?');
+		}
+		return null;
+	}
+
+
+	/**
 	 * Start a virtual MySQL transaction or increase the transaction nesting level
 	 *
 	 * If a transaction is already in progress, the nesting level will be incremented by one
@@ -468,6 +484,12 @@ class Zotero_DB {
 		}
 		$instance->readSnapshotActive = true;
 		$instance->readSnapshotConns = [];
+	}
+
+
+	public static function isReadSnapshotActive() {
+		$instance = self::getInstance();
+		return $instance->readSnapshotActive;
 	}
 
 
