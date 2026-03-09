@@ -43,8 +43,14 @@ class ItemsController extends ApiController {
 			
 			// We don't update the library version in file mode, because currently
 			// to avoid conflicts in the client the timestamp can't change
-			// when the client updates file metadata
-			if (!$this->fileMode) {
+			// when the client updates file metadata.
+			//
+			// For multi-object POSTs, the version is bumped per-item inside
+			// updateMultipleFromJSON() so that each item's version and data
+			// are committed atomically. For single-object writes and DELETEs,
+			// bump the version upfront.
+			if (!$this->fileMode && ($this->singleObject || $this->method == 'DELETE')) {
+				Zotero_DB::beginTransaction();
 				Zotero_Libraries::updateVersionAndTimestamp(
 					$this->objectLibraryID,
 					!empty($libraryTimestampChecked) ? $_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION'] : null
@@ -200,7 +206,11 @@ class ItemsController extends ApiController {
 			
 			if ($this->isWriteMethod()) {
 				$item = $this->handleObjectWrite('item', $item ? $item : null);
-				
+				// File mode doesn't bump the version, so no transaction was started
+				if (!$this->fileMode) {
+					Zotero_DB::commit();
+				}
+
 				if ($this->apiVersion < 2
 						&& ($this->method == 'PUT' || $this->method == 'PATCH')) {
 					$this->queryParams['format'] = 'atom';
@@ -457,7 +467,8 @@ class ItemsController extends ApiController {
 						$this->endTiming('write');
 
 						Zotero_DB::commit();
-						
+						$this->libraryVersion = Zotero_Libraries::getUpdatedVersion($this->objectLibraryID);
+
 						if ($cacheKey = $this->getWriteTokenCacheKey()) {
 							Z_Core::$MC->set($cacheKey, true, $this->writeTokenCacheTime);
 						}
@@ -564,10 +575,13 @@ class ItemsController extends ApiController {
 								$this->userID,
 								$this->permissions,
 								$libraryTimestampChecked ? 0 : 1,
-								null
+								null,
+								!empty($libraryTimestampChecked)
+									? $_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION'] : null
 							);
 							$this->endTiming('write');
-							
+							$this->libraryVersion = Zotero_Libraries::getUpdatedVersion($this->objectLibraryID);
+
 							if ($this->apiVersion < 2) {
 								Zotero_DB::commit();
 								
@@ -604,7 +618,6 @@ class ItemsController extends ApiController {
 					}
 					// Delete items
 					else if ($this->method == 'DELETE') {
-						Zotero_DB::beginTransaction();
 						$this->startTiming('write');
 						foreach ($this->queryParams['itemKey'] as $itemKey) {
 							Zotero_Items::delete($this->objectLibraryID, $itemKey);

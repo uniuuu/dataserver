@@ -48,10 +48,17 @@ class SearchesController extends ApiController {
 				$libraryTimestampChecked = $this->checkLibraryIfUnmodifiedSinceVersion();
 			}
 			
-			Zotero_Libraries::updateVersionAndTimestamp(
-				$this->objectLibraryID,
-				!empty($libraryTimestampChecked) ? $_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION'] : null
-			);
+			// For multi-object POSTs, the version is bumped per-object inside
+			// updateMultipleFromJSON() so that each object's version and data
+			// are committed atomically. For single-object writes and DELETEs,
+			// bump the version upfront.
+			if ($this->singleObject || $this->method == 'DELETE') {
+				Zotero_DB::beginTransaction();
+				Zotero_Libraries::updateVersionAndTimestamp(
+					$this->objectLibraryID,
+					!empty($libraryTimestampChecked) ? $_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION'] : null
+				);
+			}
 		}
 		
 		$results = array();
@@ -64,6 +71,7 @@ class SearchesController extends ApiController {
 			
 			if ($this->isWriteMethod()) {
 				$search = $this->handleObjectWrite('search', $search ? $search : null);
+				Zotero_DB::commit();
 				$this->e204();
 			}
 			
@@ -111,16 +119,18 @@ class SearchesController extends ApiController {
 					$this->userID,
 					$this->permissions,
 					$libraryTimestampChecked ? 0 : 1,
-					null
+					null,
+					!empty($libraryTimestampChecked)
+						? $_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION'] : null
 				);
-				
+				$this->libraryVersion = Zotero_Libraries::getUpdatedVersion($this->objectLibraryID);
+
 				if ($cacheKey = $this->getWriteTokenCacheKey()) {
 					Z_Core::$MC->set($cacheKey, true, $this->writeTokenCacheTime);
 				}
 			}
 			// Delete searches
 			else if ($this->method == 'DELETE') {
-				Zotero_DB::beginTransaction();
 				foreach ($this->queryParams['searchKey'] as $searchKey) {
 					Zotero_Searches::delete($this->objectLibraryID, $searchKey);
 				}

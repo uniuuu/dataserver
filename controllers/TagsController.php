@@ -43,6 +43,7 @@ class TagsController extends ApiController {
 			// Make sure library hasn't been modified
 			$this->checkLibraryIfUnmodifiedSinceVersion(true);
 
+			Zotero_DB::beginTransaction();
 			Zotero_Libraries::updateVersionAndTimestamp(
 				$this->objectLibraryID,
 				$_SERVER['HTTP_IF_UNMODIFIED_SINCE_VERSION']
@@ -197,7 +198,6 @@ class TagsController extends ApiController {
 				// Filter for specific tags with "?tag=foo || bar"
 				$tagNames = !empty($this->queryParams['tag'])
 					? explode(' || ', $this->queryParams['tag']): array();
-				Zotero_DB::beginTransaction();
 				foreach ($tagNames as $tagName) {
 					$tagIDs = Zotero_Tags::getIDs($this->objectLibraryID, $tagName);
 					foreach ($tagIDs as $tagID) {

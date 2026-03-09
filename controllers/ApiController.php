@@ -850,9 +850,12 @@ class ApiController extends Controller {
 		}
 		
 		if ($this->apiVersion >= 2 || $this->method == 'DELETE') {
+			if (Zotero_DB::transactionInProgress()) {
+				Zotero_DB::commit();
+			}
 			$this->e204();
 		}
-		
+
 		return $obj;
 	}
 	
