@@ -1405,7 +1405,10 @@ class ApiController extends Controller {
 		case JSON_ERROR_SYNTAX:
 			$error = 'Syntax error, malformed JSON';
 			break;
-		
+		case JSON_ERROR_UTF8:
+			$error = 'Malformed UTF-8 characters';
+			break;
+
 		case JSON_ERROR_NONE:
 		default:
 			$error = '';
