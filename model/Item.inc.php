@@ -907,23 +907,6 @@ class Zotero_Item extends Zotero_DataObject {
 			return $this->creatorSummary;
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 1;
-			$cacheKey = $this->getCacheKey("creatorSummary",
-				$cacheVersion
-					. isset(Z_CONFIG::$CACHE_VERSION_ITEM_DATA)
-					? "_" . Z_CONFIG::$CACHE_VERSION_ITEM_DATA
-					: ""
-			);
-			if ($cacheKey) {
-				$creatorSummary = Z_Core::$MC->get($cacheKey);
-				if ($creatorSummary !== false) {
-					$this->creatorSummary = $creatorSummary;
-					return $creatorSummary;
-				}
-			}
-		}
-		
 		$itemTypeID = $this->getField('itemTypeID');
 		$creators = $this->getCreators();
 		
@@ -974,10 +957,6 @@ class Zotero_Item extends Zotero_DataObject {
 			break;
 		}
 		
-		if ($this->cacheEnabled && $cacheKey) {
-			Z_Core::$MC->set($cacheKey, $creatorSummary);
-		}
-		
 		$this->creatorSummary = $creatorSummary;
 		return $creatorSummary;
 	}
@@ -996,30 +975,15 @@ class Zotero_Item extends Zotero_DataObject {
 			throw new Exception("Invalid itemID");
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 2;
-			$cacheKey = $this->getCacheKey("itemInPublications", $cacheVersion);
-			$inPublications = Z_Core::$MC->get($cacheKey);
-		}
-		else {
+		// Only user items can be in My Publications
+		$libraryType = Zotero_Libraries::getType($this->libraryID);
+		if ($libraryType != 'user') {
 			$inPublications = false;
 		}
-		if ($inPublications === false) {
-			// Only user items can be in My Publications
-			$libraryType = Zotero_Libraries::getType($this->libraryID);
-			if ($libraryType != 'user') {
-				$inPublications = false;
-			}
-			else {
-				$sql = "SELECT COUNT(*) FROM publicationsItems WHERE itemID=?";
-				$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
-				$inPublications = !!Zotero_DB::valueQueryFromStatement($stmt, $this->id);
-			}
-			
-			// Memcache returns false for empty keys, so use integer
-			if ($this->cacheEnabled) {
-				Z_Core::$MC->set($cacheKey, $inPublications ? 1 : 0);
-			}
+		else {
+			$sql = "SELECT COUNT(*) FROM publicationsItems WHERE itemID=?";
+			$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
+			$inPublications = !!Zotero_DB::valueQueryFromStatement($stmt, $this->id);
 		}
 		
 		return $this->inPublications = $inPublications;
@@ -1064,8 +1028,6 @@ class Zotero_Item extends Zotero_DataObject {
 			Z_Core::debug("Item $this->id has not changed");
 			return false;
 		}
-		
-		$this->cacheEnabled = false;
 		
 		// Make sure there are no gaps in the creator indexes
 		$creators = $this->getCreators();
@@ -2435,8 +2397,6 @@ class Zotero_Item extends Zotero_DataObject {
 			throw ($e);
 		}
 		
-		$this->cacheEnabled = false;
-		
 		$this->finalizeSave($env);
 		
 		if ($isNew) {
@@ -2705,29 +2665,10 @@ class Zotero_Item extends Zotero_DataObject {
 			return false;
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 1;
-			$cacheKey = $this->getCacheKey("itemSource",
-				$cacheVersion
-					. isset(Z_CONFIG::$CACHE_VERSION_ITEM_DATA)
-					? "_" . Z_CONFIG::$CACHE_VERSION_ITEM_DATA
-					: ""
-			);
-			$sourceItemID = Z_Core::$MC->get($cacheKey);
-		}
-		else {
-			$sourceItemID = false;
-		}
-		if ($sourceItemID === false) {
-			$col = $Type == 'Annotation' ? 'parentItemID' : 'sourceItemID';
-			$sql = "SELECT $col FROM item{$Type}s WHERE itemID=?";
-			$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
-			$sourceItemID = Zotero_DB::valueQueryFromStatement($stmt, $this->id);
-			
-			if ($this->cacheEnabled) {
-				Z_Core::$MC->set($cacheKey, $sourceItemID ? $sourceItemID : 0);
-			}
-		}
+		$col = $Type == 'Annotation' ? 'parentItemID' : 'sourceItemID';
+		$sql = "SELECT $col FROM item{$Type}s WHERE itemID=?";
+		$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
+		$sourceItemID = Zotero_DB::valueQueryFromStatement($stmt, $this->id);
 		
 		if (!$sourceItemID) {
 			$sourceItemID = false;
@@ -4849,28 +4790,10 @@ class Zotero_Item extends Zotero_DataObject {
 			trigger_error("Invalid itemID '$this->id'", E_USER_ERROR);
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 1;
-			$cacheKey = $this->getCacheKey("itemData",
-				$cacheVersion
-					. isset(Z_CONFIG::$CACHE_VERSION_ITEM_DATA)
-					? "_" . Z_CONFIG::$CACHE_VERSION_ITEM_DATA
-					: ""
-			);
-			$fields = Z_Core::$MC->get($cacheKey);
-		}
-		else {
-			$fields = false;
-		}
-		if ($fields === false) {
-			$sql = "SELECT fieldID, value FROM itemData WHERE itemID=?";
-			$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
-			$fields = Zotero_DB::queryFromStatement($stmt, $this->id);
-			
-			if ($this->cacheEnabled) {
-				Z_Core::$MC->set($cacheKey, $fields ? $fields : array());
-			}
-		}
+		$sql = "SELECT fieldID, value FROM itemData WHERE itemID=?";
+		$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
+		$fields = Zotero_DB::queryFromStatement($stmt, $this->id);
+		$this->dataSources['itemData'] = 'db';
 		
 		$itemTypeFields = Zotero_ItemFields::getItemTypeFields($this->itemTypeID);
 
@@ -4939,29 +4862,10 @@ class Zotero_Item extends Zotero_DataObject {
 			trigger_error("Invalid itemID '$this->id'", E_USER_ERROR);
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 1;
-			$cacheKey = $this->getCacheKey("itemCreators",
-				$cacheVersion
-					. isset(Z_CONFIG::$CACHE_VERSION_ITEM_DATA)
-					? "_" . Z_CONFIG::$CACHE_VERSION_ITEM_DATA
-					: ""
-			);
-			$creators = Z_Core::$MC->get($cacheKey);
-		}
-		else {
-			$creators = false;
-		}
-		if ($creators === false) {
-			$sql = "SELECT creatorID, creatorTypeID, orderIndex FROM itemCreators
-					WHERE itemID=? ORDER BY orderIndex";
-			$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
-			$creators = Zotero_DB::queryFromStatement($stmt, $this->id);
-			
-			if ($this->cacheEnabled) {
-				Z_Core::$MC->set($cacheKey, $creators ? $creators : array());
-			}
-		}
+		$sql = "SELECT creatorID, creatorTypeID, orderIndex FROM itemCreators
+				WHERE itemID=? ORDER BY orderIndex";
+		$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
+		$creators = Zotero_DB::queryFromStatement($stmt, $this->id);
 		
 		$this->creators = [];
 		$this->loaded['creators'] = true;
@@ -4974,7 +4878,6 @@ class Zotero_Item extends Zotero_DataObject {
 		foreach ($creators as $creator) {
 			$creatorObj = Zotero_Creators::get($this->libraryID, $creator['creatorID'], true);
 			if (!$creatorObj) {
-				Z_Core::$MC->delete($cacheKey);
 				throw new Exception("Creator {$creator['creatorID']} not found");
 			}
 			$this->creators[$creator['orderIndex']] = array(
@@ -5206,24 +5109,6 @@ class Zotero_Item extends Zotero_DataObject {
 			$this->loadPrimaryData();
 		}
 		return md5($this->serverDateModified . $this->version);
-	}
-	
-	
-	private function getCacheKey($mode, $cacheVersion=false) {
-		if (!$this->loaded['primaryData']) {
-			$this->loadPrimaryData();
-		}
-		
-		if (!$this->id) {
-			return false;
-		}
-		if (!$mode) {
-			throw new Exception('$mode not provided');
-		}
-		return $mode
-			. "_". $this->id
-			. "_" . $this->version
-			. ($cacheVersion ? "_" . $cacheVersion : "");
 	}
 	
 	

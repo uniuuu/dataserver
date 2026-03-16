@@ -53,8 +53,6 @@ class Zotero_DataObject {
 	
 	private $disabled = false;
 	
-	protected $cacheEnabled = false;
-	
 	public function __construct() {
 		$objectType = $this->objectType;
 		$this->ObjectType = ucwords($objectType);
@@ -305,30 +303,9 @@ class Zotero_DataObject {
 			throw new Exception("Invalid $idProp");
 		}
 		
-		if ($this->cacheEnabled) {
-			$cacheVersion = 1;
-			$configProp = "CACHE_VERSION_" . strtoupper($this->objectType) . "_DATA";
-			$cacheKey = $this->getCacheKey($this->objectType . "IsDeleted",
-				$cacheVersion
-					. isset(Z_CONFIG::$$configProp)
-					? "_" . Z_CONFIG::$$configProp
-					: ""
-			);
-			$deleted = Z_Core::$MC->get($cacheKey);
-		}
-		else {
-			$deleted = false;
-		}
-		if ($deleted === false) {
-			$sql = "SELECT COUNT(*) FROM deleted{$this->ObjectTypePlural} WHERE $idProp=?";
-			$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
-			$deleted = !!Zotero_DB::valueQueryFromStatement($stmt, $this->id);
-			
-			// Memcache returns false for empty keys, so use integer
-			if ($this->cacheEnabled) {
-				Z_Core::$MC->set($cacheKey, $deleted ? 1 : 0);
-			}
-		}
+		$sql = "SELECT COUNT(*) FROM deleted{$this->ObjectTypePlural} WHERE $idProp=?";
+		$stmt = Zotero_DB::getStatement($sql, true, Zotero_Shards::getByLibraryID($this->libraryID));
+		$deleted = !!Zotero_DB::valueQueryFromStatement($stmt, $this->id);
 		
 		$this->_deleted = $deleted;
 		
