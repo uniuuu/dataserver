@@ -120,9 +120,11 @@ CREATE TABLE `itemAttachments` (
   `path` blob NOT NULL,
   `storageModTime` bigint(13) unsigned DEFAULT NULL,
   `storageHash` char(32) DEFAULT NULL,
+  `lastRead` int unsigned DEFAULT NULL,
   PRIMARY KEY (`itemID`),
   KEY `sourceItemID` (`sourceItemID`),
-  KEY `charsetID` (`charsetID`)
+  KEY `charsetID` (`charsetID`),
+  KEY `lastRead` (`lastRead`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 

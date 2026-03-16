@@ -1842,7 +1842,11 @@ class Zotero_Items {
 					}
 					$item->attachmentStorageModTime = $val;
 					break;
-				
+
+				case 'lastRead':
+					$item->attachmentLastRead = $val;
+					break;
+
 				//
 				// Annotation properties
 				//
@@ -2435,7 +2439,19 @@ class Zotero_Items {
 						}
 					}
 					break;
-				
+
+				case 'lastRead':
+					if ($itemType != 'attachment') {
+						throw new Exception("'$key' is valid only for attachment items", Z_ERROR_INVALID_INPUT);
+					}
+					if (Zotero_Libraries::getType($libraryID) != 'user') {
+						throw new Exception("'$key' is valid only for user library items", Z_ERROR_INVALID_INPUT);
+					}
+					if ($val !== null && $val !== false && !is_int($val)) {
+						throw new Exception("'$key' must be a Unix timestamp integer", Z_ERROR_INVALID_INPUT);
+					}
+					break;
+
 				// Annotation properties
 				case 'annotationType':
 				case 'annotationAuthorName':

@@ -2718,6 +2718,113 @@ describe('Items', function () {
 		assert.include(response.getBody(), `"title": "${title}"`);
 	});
 
+	it('should set and return lastRead for user library attachment', async function () {
+		let parentKey = await API.createItem('book', {}, 'key');
+		let json = await API.createAttachmentItem('imported_file', {}, parentKey, 'jsonData');
+		let itemKey = json.key;
+
+		// lastRead should not be present initially
+		assert.notProperty(json, 'lastRead');
+
+		// Set lastRead
+		let lastRead = 1674668111;
+		let response = await API.userPatch(
+			config.get('userID'),
+			`items/${itemKey}`,
+			JSON.stringify({ lastRead }),
+			[
+				'Content-Type: application/json',
+				`If-Unmodified-Since-Version: ${json.version}`
+			]
+		);
+		assert204(response);
+
+		// Should be returned in the JSON
+		json = (await API.getItem(itemKey, 'json')).data;
+		assert.equal(json.lastRead, lastRead);
+	});
+
+	it('should reject lastRead for group library attachment', async function () {
+		let groupID = config.get('ownedPrivateGroupID');
+		let parentKey = await API.groupCreateItem(groupID, 'book', {}, 'key');
+		let json = await API.groupCreateAttachmentItem(groupID, 'imported_file', {}, parentKey, 'jsonData');
+
+		json.lastRead = 1674668111;
+		let response = await API.groupPost(
+			groupID,
+			`items`,
+			JSON.stringify([json]),
+			['Content-Type: application/json']
+		);
+		assert400ForObject(response);
+	});
+
+	it('should reject non-integer lastRead', async function () {
+		let json = await API.createAttachmentItem('imported_file', {}, false, 'jsonData');
+		let itemKey = json.key;
+
+		let response = await API.userPatch(
+			config.get('userID'),
+			`items/${itemKey}`,
+			JSON.stringify({ lastRead: "not a number" }),
+			[
+				'Content-Type: application/json',
+				`If-Unmodified-Since-Version: ${json.version}`
+			]
+		);
+		assert400(response);
+	});
+
+	it('should reject lastRead on non-attachment item', async function () {
+		let json = await API.createItem('book', {}, 'jsonData');
+		let itemKey = json.key;
+
+		let response = await API.userPatch(
+			config.get('userID'),
+			`items/${itemKey}`,
+			JSON.stringify({ lastRead: 1674668111 }),
+			[
+				'Content-Type: application/json',
+				`If-Unmodified-Since-Version: ${json.version}`
+			]
+		);
+		assert400(response);
+	});
+
+	it('should not return lastRead to old schema version clients', async function () {
+		let json = await API.createAttachmentItem('imported_file', { lastRead: 1674668111 }, false, 'jsonData');
+		let itemKey = json.key;
+		assert.equal(json.lastRead, 1674668111);
+
+		// Should be returned with schema version >= 42
+		let response = await API.userGet(
+			config.get('userID'),
+			`items/${itemKey}`,
+			['Zotero-Schema-Version: 42']
+		);
+		assert200(response);
+		assert.equal(API.getJSONFromResponse(response).data.lastRead, 1674668111);
+
+		// Should not be returned with old schema version
+		response = await API.userGet(
+			config.get('userID'),
+			`items/${itemKey}`,
+			['Zotero-Schema-Version: 29']
+		);
+		assert200(response);
+		assert.notProperty(API.getJSONFromResponse(response).data, 'lastRead');
+
+		// Should be returned with no schema version header
+		API.useSchemaVersion(false);
+		response = await API.userGet(
+			config.get('userID'),
+			`items/${itemKey}`
+		);
+		assert200(response);
+		assert.equal(API.getJSONFromResponse(response).data.lastRead, 1674668111);
+		API.resetSchemaVersion();
+	});
+
 	// PHP: test_should_not_return_empty_fields_from_newer_schema_to_old_client
 	it('should not return empty fields from newer schema to old client', async function () {
 		API.useSchemaVersion(false);

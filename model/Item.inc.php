@@ -60,6 +60,7 @@ class Zotero_Item extends Zotero_DataObject {
 		'filename' => null,
 		'storageModTime' => null,
 		'storageHash' => null,
+		'lastRead' => null,
 	);
 	
 	private $annotationData = [
@@ -150,6 +151,7 @@ class Zotero_Item extends Zotero_DataObject {
 			case 'attachmentPath':
 			case 'attachmentStorageModTime':
 			case 'attachmentStorageHash':
+			case 'attachmentLastRead':
 				// Strip 'attachment'
 				$field = substr($field, 10);
 				$field[0] = strtolower($field[0]);
@@ -205,6 +207,7 @@ class Zotero_Item extends Zotero_DataObject {
 			case 'attachmentStorageHash':
 			case 'attachmentPath':
 			case 'attachmentFilename':
+			case 'attachmentLastRead':
 				$field = substr($field, 10);
 				$field[0] = strtolower($field[0]);
 				return $this->setAttachmentField($field, $val);
@@ -1961,9 +1964,10 @@ class Zotero_Item extends Zotero_DataObject {
 							charsetID,
 							path,
 							storageModTime,
-							storageHash
+							storageHash,
+							lastRead
 						)
-						VALUES (?,?,?,?,?,?,?,?)
+						VALUES (?,?,?,?,?,?,?,?,?)
 						ON DUPLICATE KEY UPDATE
 							sourceItemID=VALUES(sourceItemID),
 							linkMode=VALUES(linkMode),
@@ -1971,7 +1975,8 @@ class Zotero_Item extends Zotero_DataObject {
 							charsetID=VALUES(charsetID),
 							path=VALUES(path),
 							storageModTime=VALUES(storageModTime),
-							storageHash=VALUES(storageHash)";
+							storageHash=VALUES(storageHash),
+							lastRead=VALUES(lastRead)";
 					$parent = $this->getSource();
 					if ($parent) {
 						$parentItem = Zotero_Items::get($this->_libraryID, $parent);
@@ -2002,7 +2007,8 @@ class Zotero_Item extends Zotero_DataObject {
 					$path = $this->attachmentPath;
 					$storageModTime = $this->attachmentStorageModTime;
 					$storageHash = $this->attachmentStorageHash;
-					
+					$lastRead = $this->attachmentLastRead;
+
 					$bindParams = array(
 						$this->_id,
 						$parent ? $parent : null,
@@ -2011,7 +2017,8 @@ class Zotero_Item extends Zotero_DataObject {
 						$charsetID ? $charsetID : null,
 						$path ? $path : '',
 						$storageModTime ? $storageModTime : null,
-						$storageHash ? $storageHash : null
+						$storageHash ? $storageHash : null,
+						$lastRead ? $lastRead : null
 					);
 					Zotero_DB::query($sql, $bindParams, $shardID);
 					
@@ -3209,6 +3216,7 @@ class Zotero_Item extends Zotero_DataObject {
 			
 			case 'storageModTime':
 			case 'storageHash':
+			case 'lastRead':
 				$defaultType = 'null';
 				break;
 			
@@ -3258,6 +3266,7 @@ class Zotero_Item extends Zotero_DataObject {
 			case 'storageHash':
 			case 'path':
 			case 'filename':
+			case 'lastRead':
 				$fieldCap = ucwords($field);
 				break;
 				
@@ -3290,6 +3299,7 @@ class Zotero_Item extends Zotero_DataObject {
 			// Default to null
 			case 'storageModTime':
 			case 'storageHash':
+			case 'lastRead':
 				if (!$val) {
 					$val = null;
 				}
@@ -4685,6 +4695,14 @@ class Zotero_Item extends Zotero_DataObject {
 				if ($includeEmpty || $val) {
 					$arr['path'] = Zotero_Attachments::decodeRelativeDescriptorString($val);
 				}
+			}
+
+			// Only include lastRead for user library items with schema version >= 42
+			$val = $this->attachmentLastRead;
+			if ($val
+					&& (!$schemaVersion || $schemaVersion >= 42)
+					&& Zotero_Libraries::getType($this->libraryID) == 'user') {
+				$arr['lastRead'] = $val;
 			}
 		}
 		
