@@ -239,7 +239,11 @@ class Zotero_DB {
 			
 			$this->connections[$linkID] = $this->getConnection($linkID, $shardInfo);
 		}
-		//error_log($this->connections[$linkID]->link->getConnection()->host_info);
+		// If in read-only mode but no replicas were available, ensure a read
+		// snapshot on the primary for consistent reads within the request
+		if ($this->isReadOnly($shardID)) {
+			return $this->ensureReadSnapshot($this->connections[$linkID]);
+		}
 		return $this->connections[$linkID];
 	}
 	
