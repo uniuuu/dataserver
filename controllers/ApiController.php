@@ -975,7 +975,7 @@ class ApiController extends Controller {
 			);
 		}
 		
-		if ($obj->version !== $version) {
+		if ($obj->version > $version) {
 			$this->libraryVersion = $obj->version;
 			$this->e412(ucwords($objectType) . " has been modified since specified version "
 				. "(expected $version, found " . $obj->version . ")");
