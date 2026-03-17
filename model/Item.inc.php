@@ -2052,6 +2052,7 @@ class Zotero_Item extends Zotero_DataObject {
 						. "(itemID, parentItemID, `type`, authorName, text, comment, color, pageLabel, sortIndex, position) "
 						. "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
 						. "ON DUPLICATE KEY UPDATE "
+						. "parentItemID=VALUES(parentItemID), "
 						. "authorName=VALUES(authorName), "
 						. "text=VALUES(text), "
 						. "comment=VALUES(comment), "

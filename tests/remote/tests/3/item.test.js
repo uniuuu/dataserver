@@ -2271,10 +2271,11 @@ describe('Items', function () {
 		);
 		let jsonData = await API.createAnnotationItem('highlight', null, attachment1Key, 'jsonData');
 
-		// Change the parent item
+		// Change the parent item and annotation data simultaneously
 		let patchJSON = {
 			version: jsonData.version,
-			parentItem: attachment2Key
+			parentItem: attachment2Key,
+			annotationComment: 'test comment'
 		};
 		let response = await API.userPatch(
 			config.get('userID'),
@@ -2282,6 +2283,14 @@ describe('Items', function () {
 			JSON.stringify(patchJSON)
 		);
 		assert204(response);
+
+		// Verify the parent actually changed
+		response = await API.userGet(
+			config.get('userID'),
+			`items/${jsonData.key}`
+		);
+		let json = API.getJSONFromResponse(response);
+		assert.equal(json.data.parentItem, attachment2Key);
 	});
 
 	// PHP: test_should_reject_changing_parent_item_of_annotation_to_invalid_items
