@@ -497,8 +497,9 @@ class Zotero_DB {
 			try {
 				$conn->link->commit();
 			}
-			catch (Exception $e) {
-				// Connection may have been closed
+			catch (\Throwable $e) {
+				error_log("WARNING: Failed to commit read snapshot on "
+					. ($conn->host ?? '?') . ": " . $e->getMessage());
 			}
 			$conn->readSnapshotStarted = false;
 		}
