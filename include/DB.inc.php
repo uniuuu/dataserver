@@ -1388,8 +1388,12 @@ class Zotero_DB {
 	
 	public static function close($shardID=0) {
 		$instance = self::getInstance();
-		$conn = $instance->getShardConnection($shardID);
-		// Remove prepared statements for this connection
+		// Access the cached connection directly to avoid triggering
+		// ensureReadSnapshot or creating new connections
+		$conn = $instance->connections[$shardID] ?? null;
+		if (!$conn) {
+			return;
+		}
 		$conn->statements = [];
 		$conn->link->closeConnection();
 	}
