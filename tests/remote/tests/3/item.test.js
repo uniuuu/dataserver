@@ -1603,6 +1603,126 @@ describe('Items', function () {
 		assert.equal(config.get('username'), json.meta.createdByUser.username);
 	});
 
+	it('should not update lastModifiedByUser for non-field changes', async function () {
+		let groupID = config.get('ownedPrivateGroupID');
+
+		// Create item as user 1
+		let json = await API.groupCreateItem(groupID, 'book', {}, 'json');
+		let key = json.key;
+		let version = json.version;
+
+		// Modify a field as user 2 so lastModifiedByUser gets set
+		API.useAPIKey(config.get('user2APIKey'));
+		let response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				title: 'Modified Title'
+			}]),
+			['Content-Type: application/json']
+		);
+		json = API.getJSONFromResponse(response);
+		assert200(response);
+		version = json.successful[0].version;
+		let lastModifiedByUser = json.successful[0].meta.lastModifiedByUser;
+		assert.ok(lastModifiedByUser);
+
+		API.useAPIKey(config.get('user1APIKey'));
+
+		// Collection change
+		response = await API.groupPost(
+			groupID,
+			'collections',
+			JSON.stringify([{ name: 'Test Collection' }]),
+			['Content-Type: application/json']
+		);
+		let collectionJSON = API.getJSONFromResponse(response);
+		let collectionKey = collectionJSON.successful[0].key;
+
+		response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				collections: [collectionKey]
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		version = json.successful[0].version;
+		assert.deepEqual(
+			lastModifiedByUser,
+			json.successful[0].meta.lastModifiedByUser,
+			'lastModifiedByUser changed after collection change'
+		);
+
+		// Trash
+		response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				deleted: true
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		version = json.successful[0].version;
+		assert.deepEqual(
+			lastModifiedByUser,
+			json.successful[0].meta.lastModifiedByUser,
+			'lastModifiedByUser changed after trash'
+		);
+
+		// Untrash
+		response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				deleted: false
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		version = json.successful[0].version;
+		assert.deepEqual(
+			lastModifiedByUser,
+			json.successful[0].meta.lastModifiedByUser,
+			'lastModifiedByUser changed after untrash'
+		);
+
+		// Relations
+		response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				relations: {
+					'dc:relation': 'http://zotero.org/groups/' + groupID + '/items/AAAAAAAA'
+				}
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		version = json.successful[0].version;
+		assert.deepEqual(
+			lastModifiedByUser,
+			json.successful[0].meta.lastModifiedByUser,
+			'lastModifiedByUser changed after relations change'
+		);
+	});
+
 	// PHP: testNumChildrenJSON
 	it('should return numChildren in JSON', async function () {
 		let json = await API.createItem('book', false, 'json');

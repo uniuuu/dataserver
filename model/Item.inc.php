@@ -1020,7 +1020,7 @@ class Zotero_Item extends Zotero_DataObject {
 	}
 	
 	
-	public function save($userID=false) {
+	public function save($userID=false, $options=[]) {
 		if (!$this->_libraryID) {
 			trigger_error("Library ID must be set before saving", E_USER_ERROR);
 		}
@@ -1679,8 +1679,10 @@ class Zotero_Item extends Zotero_DataObject {
 				
 				$this->_serverDateModified = $timestamp;
 				
-				// Group item data
-				if ($isGroupLibrary && $userID) {
+				// Group item data -- only update lastModifiedByUserID if dateModified
+				// was updated (i.e., not for collection membership, trash, etc.)
+				if ($isGroupLibrary && $userID
+						&& empty($options['skipDateModifiedUpdate'])) {
 					$sql = "INSERT INTO groupItems VALUES (?, ?, ?)
 								ON DUPLICATE KEY UPDATE lastModifiedByUserID=?";
 					Zotero_DB::query($sql, array($this->_id, null, $userID, $userID), $shardID);
@@ -2424,7 +2426,7 @@ class Zotero_Item extends Zotero_DataObject {
 	 */
 	public function updateVersion($userID) {
 		$this->changed['version'] = true;
-		$this->save($userID);
+		$this->save($userID, ['skipDateModifiedUpdate' => true]);
 	}
 	
 	

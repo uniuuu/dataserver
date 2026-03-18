@@ -701,24 +701,12 @@ class Zotero_Items {
 		}
 		
 		Zotero_DB::beginTransaction();
-		foreach ($shardItemIDs as $shardID => $itemIDs) {
-			// Group item data
-			if ($userID && isset($shardGroupItemIDs[$shardID])) {
-				$sql = "UPDATE groupItems SET lastModifiedByUserID=? "
-					. "WHERE itemID IN ("
-					. implode(',', array_fill(0, sizeOf($shardGroupItemIDs[$shardID]), '?')) . ")";
-				Zotero_DB::query(
-					$sql,
-					array_merge(array($userID), $shardGroupItemIDs[$shardID]),
-					$shardID
-				);
-			}
-		}
 		foreach ($libraryItems as $libraryID => $items) {
 			$itemIDs = array();
 			foreach ($items as $item) {
 				$itemIDs[] = $item->id;
 			}
+			$shardID = $libraryShards[$libraryID];
 			$version = Zotero_Libraries::getUpdatedVersion($libraryID);
 			$sql = "UPDATE items SET version=? WHERE itemID IN "
 				. "(" . implode(',', array_fill(0, sizeOf($itemIDs), '?')) . ")";
@@ -1906,7 +1894,9 @@ class Zotero_Items {
 			$item->dateModified = Zotero_DB::getTransactionTimestamp();
 		}
 		
-		$changed = $item->save($userID) || $changed;
+		$changed = $item->save($userID, [
+			'skipDateModifiedUpdate' => $skipDateModifiedUpdate
+		]) || $changed;
 		
 		// Additional steps that have to be performed on a saved object
 		if ($twoStage) {
