@@ -2728,15 +2728,19 @@ describe('Items', function () {
 	});
 
 	it('should set and return lastRead for user library attachment', async function () {
-		let parentKey = await API.createItem('book', {}, 'key');
-		let json = await API.createAttachmentItem('imported_file', {}, parentKey, 'jsonData');
-		let itemKey = json.key;
-
-		// lastRead should not be present initially
-		assert.notProperty(json, 'lastRead');
-
-		// Set lastRead
+		// Set on creation
 		let lastRead = 1674668111;
+		let json = await API.createAttachmentItem('imported_file', { lastRead }, false, 'jsonData');
+		let itemKey = json.key;
+		assert.equal(json.lastRead, lastRead);
+		json = (await API.getItem(itemKey, 'json')).data;
+		assert.equal(json.lastRead, lastRead);
+
+		// Set via PATCH
+		let parentKey = await API.createItem('book', {}, 'key');
+		json = await API.createAttachmentItem('imported_file', {}, parentKey, 'jsonData');
+		itemKey = json.key;
+		assert.notProperty(json, 'lastRead');
 		let response = await API.userPatch(
 			config.get('userID'),
 			`items/${itemKey}`,
@@ -2747,10 +2751,31 @@ describe('Items', function () {
 			]
 		);
 		assert204(response);
-
-		// Should be returned in the JSON
 		json = (await API.getItem(itemKey, 'json')).data;
 		assert.equal(json.lastRead, lastRead);
+	});
+
+	it('should clear lastRead with empty string, null, or false', async function () {
+		for (let clearValue of ["", null, false]) {
+			let lastRead = 1674668111;
+			let json = await API.createAttachmentItem('imported_file', { lastRead }, false, 'jsonData');
+			let itemKey = json.key;
+			assert.equal(json.lastRead, lastRead);
+
+			let response = await API.userPatch(
+				config.get('userID'),
+				`items/${itemKey}`,
+				JSON.stringify({ lastRead: clearValue }),
+				[
+					'Content-Type: application/json',
+					`If-Unmodified-Since-Version: ${json.version}`
+				]
+			);
+			assert204(response);
+
+			json = (await API.getItem(itemKey, 'json')).data;
+			assert.notProperty(json, 'lastRead');
+		}
 	});
 
 	it('should reject lastRead for group library attachment', async function () {

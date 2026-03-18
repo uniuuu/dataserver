@@ -1383,8 +1383,8 @@ class Zotero_Item extends Zotero_DataObject {
 				// Attachment
 				if ($this->isAttachment()) {
 					$sql = "INSERT INTO itemAttachments "
-						. "(itemID, sourceItemID, linkMode, mimeType, charsetID, path, storageModTime, storageHash) "
-						. "VALUES (?,?,?,?,?,?,?,?)";
+						. "(itemID, sourceItemID, linkMode, mimeType, charsetID, path, storageModTime, storageHash, lastRead) "
+						. "VALUES (?,?,?,?,?,?,?,?,?)";
 					$isEmbeddedImage = $this->attachmentLinkMode == 'embedded_image';
 					
 					$parent = $this->getSource();
@@ -1433,7 +1433,8 @@ class Zotero_Item extends Zotero_DataObject {
 					$path = $this->attachmentPath;
 					$storageModTime = $this->attachmentStorageModTime;
 					$storageHash = $this->attachmentStorageHash;
-					
+					$lastRead = $this->attachmentLastRead;
+
 					$bindParams = array(
 						$itemID,
 						$parent ? $parent : null,
@@ -1442,7 +1443,8 @@ class Zotero_Item extends Zotero_DataObject {
 						$charsetID ? $charsetID : null,
 						$path ? $path : '',
 						$storageModTime ? $storageModTime : null,
-						$storageHash ? $storageHash : null
+						$storageHash ? $storageHash : null,
+						$lastRead ? $lastRead : null
 					);
 					Zotero_DB::query($sql, $bindParams, $shardID);
 				}
@@ -3225,7 +3227,10 @@ class Zotero_Item extends Zotero_DataObject {
 				throw new Exception("Invalid field '$field'");
 		}
 		
-		if ($this->attachmentData[$field] !== null) {
+		// If the value was explicitly set to null (e.g., clearing lastRead), the changed
+		// flag distinguishes that from the initial null (meaning "not yet loaded from DB")
+		if ($this->attachmentData[$field] !== null
+				|| !empty($this->changed['attachmentData'][$field])) {
 			return $this->attachmentData[$field];
 		}
 		

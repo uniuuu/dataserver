@@ -1844,7 +1844,7 @@ class Zotero_Items {
 					break;
 
 				case 'lastRead':
-					$item->attachmentLastRead = $val;
+					$item->attachmentLastRead = $val !== "" ? $val : null;
 					break;
 
 				//
@@ -2447,7 +2447,11 @@ class Zotero_Items {
 					if (Zotero_Libraries::getType($libraryID) != 'user') {
 						throw new Exception("'$key' is valid only for user library items", Z_ERROR_INVALID_INPUT);
 					}
-					if ($val !== null && $val !== false && !is_int($val)) {
+					// Allow empty string as a way to clear the value
+					if ($val === "" || $val === false) {
+						$val = null;
+					}
+					if ($val !== null && !is_int($val)) {
 						throw new Exception("'$key' must be a Unix timestamp integer", Z_ERROR_INVALID_INPUT);
 					}
 					break;
