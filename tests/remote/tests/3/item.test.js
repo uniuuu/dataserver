@@ -1347,7 +1347,7 @@ describe('Items', function () {
 		let json = await API.createItem('book', false, 'jsonData');
 		let modified = json.dateModified;
 
-		for (let i = 1; i <= 4; i++) {
+		for (let i = 1; i <= 3; i++) {
 			await new Promise(resolve => setTimeout(resolve, 1100));
 
 			// For all tests after the first one, unset Date Modified
@@ -1365,11 +1365,10 @@ describe('Items', function () {
 					break;
 
 				case 3:
-					json.deleted = true;
-					break;
-
-				case 4:
-					json.deleted = false;
+					json.relations = {
+						'dc:relation': 'http://zotero.org/users/'
+							+ config.get('userID') + '/items/AAAAAAAA'
+					};
 					break;
 			}
 
@@ -1660,46 +1659,6 @@ describe('Items', function () {
 			'lastModifiedByUser changed after collection change'
 		);
 
-		// Trash
-		response = await API.groupPost(
-			groupID,
-			'items',
-			JSON.stringify([{
-				key: key,
-				version: version,
-				deleted: true
-			}]),
-			['Content-Type: application/json']
-		);
-		assert200(response);
-		json = API.getJSONFromResponse(response);
-		version = json.successful[0].version;
-		assert.deepEqual(
-			lastModifiedByUser,
-			json.successful[0].meta.lastModifiedByUser,
-			'lastModifiedByUser changed after trash'
-		);
-
-		// Untrash
-		response = await API.groupPost(
-			groupID,
-			'items',
-			JSON.stringify([{
-				key: key,
-				version: version,
-				deleted: false
-			}]),
-			['Content-Type: application/json']
-		);
-		assert200(response);
-		json = API.getJSONFromResponse(response);
-		version = json.successful[0].version;
-		assert.deepEqual(
-			lastModifiedByUser,
-			json.successful[0].meta.lastModifiedByUser,
-			'lastModifiedByUser changed after untrash'
-		);
-
 		// Relations
 		response = await API.groupPost(
 			groupID,
@@ -1721,6 +1680,66 @@ describe('Items', function () {
 			json.successful[0].meta.lastModifiedByUser,
 			'lastModifiedByUser changed after relations change'
 		);
+	});
+
+	it('should update lastModifiedByUser when trashing', async function () {
+		let groupID = config.get('ownedPrivateGroupID');
+
+		// Create item as user 1
+		let json = await API.groupCreateItem(groupID, 'book', {}, 'json');
+		let key = json.key;
+		let version = json.version;
+		let dateModified = json.data.dateModified;
+
+		// Trash as user 2
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		API.useAPIKey(config.get('user2APIKey'));
+		let response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				deleted: true
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		version = json.successful[0].version;
+		assert.ok(
+			json.successful[0].meta.lastModifiedByUser,
+			'lastModifiedByUser not set after trash'
+		);
+		assert.notEqual(
+			json.successful[0].data.dateModified,
+			dateModified,
+			'dateModified not updated after trash'
+		);
+
+		// Untrash as user 1
+		API.useAPIKey(config.get('user1APIKey'));
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		dateModified = json.successful[0].data.dateModified;
+		response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key: key,
+				version: version,
+				deleted: false
+			}]),
+			['Content-Type: application/json']
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		assert.notEqual(
+			json.successful[0].data.dateModified,
+			dateModified,
+			'dateModified not updated after untrash'
+		);
+
+		API.useAPIKey(config.get('user1APIKey'));
 	});
 
 	// PHP: testNumChildrenJSON
