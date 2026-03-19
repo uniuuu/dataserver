@@ -4522,6 +4522,14 @@ class Zotero_Item extends Zotero_DataObject {
 					}
 				}
 
+				// Log cached vs fresh tags if they differ
+				$cachedTags = $cachedCmp['data']['tags'] ?? null;
+				$freshTags = $uncachedCmp['data']['tags'] ?? null;
+				if (json_encode($cachedTags) !== json_encode($freshTags)) {
+					error_log("  cached_tags: " . json_encode($cachedTags));
+					error_log("  fresh_tags: " . json_encode($freshTags));
+				}
+
 				// Direct reads from the current connection (replica or primary)
 				// to compare with the in-memory object's data
 				$dbHostAfterCheck = Zotero_DB::getShardHost($shardID);
@@ -4565,6 +4573,12 @@ class Zotero_Item extends Zotero_DataObject {
 					}
 				}
 				error_log("  db_itemData: " . json_encode($dbFields));
+
+				// Tags from current connection
+				$sql = "SELECT T.name, IT.type FROM itemTags IT "
+					. "JOIN tags T USING (tagID) WHERE IT.itemID=? ORDER BY T.name";
+				$dbTags = Zotero_DB::query($sql, $this->id, $shardID);
+				error_log("  db_tags: " . json_encode($dbTags ?: []));
 			}
 		}
 
