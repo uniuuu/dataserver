@@ -4275,6 +4275,7 @@ class Zotero_Item extends Zotero_DataObject {
 					&& !Z_Core::probability(10)) {
 				// Keep in sync with 'library' assignment below
 				$cached['library'] = Zotero_Libraries::toJSON($this->libraryID);
+				unset($cached['_cachedBy']);
 				return $cached;
 			}
 		}
