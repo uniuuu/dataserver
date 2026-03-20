@@ -968,7 +968,7 @@ class ApiController extends Controller {
 					. "(to create, use If-Unmodified-Since-Version: 0, JSON 'version' 0, or PUT method)");
 			}
 			if ($version > 0) {
-				$this->e404(ucwords($objectType) . " not found (expected version $version)");
+				$this->e412(ucwords($objectType) . " not found (expected version $version)");
 			}
 			return true;
 		}
