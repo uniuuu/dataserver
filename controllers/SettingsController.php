@@ -60,27 +60,26 @@ class SettingsController extends ApiController {
 		if ($this->singleObject) {
 			$this->allowMethods(array('GET', 'PUT', 'DELETE'));
 			
-			$setting = Zotero_Settings::getByLibraryAndKey($this->objectLibraryID, $this->objectKey);
-			if (!$setting) {
-				if ($this->method == 'PUT') {
-					$setting = new Zotero_Setting;
-					$setting->libraryID = $this->objectLibraryID;
-					$setting->name = $this->objectKey;
-				}
-				else {
-					$this->e404("Setting not found");
-				}
+			$setting = Zotero_Settings::getByLibraryAndKey($this->objectLibraryID, $this->objectKey)
+				?: null;
+			if (!$setting && $this->method != 'PUT') {
+				$this->e404("Setting not found");
 			}
-			
+
 			if ($this->isWriteMethod()) {
 				$this->libraryVersion = Zotero_Libraries::getUpdatedVersion($this->objectLibraryID);
-				
+
 				// Update setting
 				if ($this->method == 'PUT') {
 					$json = $this->jsonDecode($this->body);
 					$objectVersionValidated = $this->checkSingleObjectWriteVersion(
 						'setting', $setting, $json
 					);
+					if (!$setting) {
+						$setting = new Zotero_Setting;
+						$setting->libraryID = $this->objectLibraryID;
+						$setting->name = $this->objectKey;
+					}
 					
 					$changed = Zotero_Settings::updateFromJSON(
 						$setting,
