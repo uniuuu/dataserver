@@ -793,7 +793,7 @@ describe('Settings', function () {
 		json = {
 			// eslint-disable-next-line camelcase
 			lastPageIndex_u_ABCD2345: {
-				value: 100.1
+				value: 105.1
 			}
 		};
 		response = await API.userPost(
