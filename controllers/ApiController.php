@@ -884,8 +884,9 @@ class ApiController extends Controller {
 			throw new Exception('$obj must be a data object or null');
 		}
 		
-		// In versions below 3, no writes to missing objects
-		if (!$obj && $this->apiVersion < 3) {
+		// In versions below 3, no writes to missing objects (except settings,
+		// which can be created via PUT)
+		if (!$obj && $this->apiVersion < 3 && $objectType != 'setting') {
 			$this->e404(ucwords($objectType) . " not found");
 		}
 		
