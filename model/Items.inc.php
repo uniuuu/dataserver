@@ -315,7 +315,10 @@ class Zotero_Items {
 		}
 		
 		$sql .= "WHERE I.libraryID=? ";
-		
+
+		// Skip custom item types (e.g., nsfReviewer) not in the global schema
+		$sql .= "AND I.itemTypeID < 10000 ";
+
 		if (!$includeTrashed) {
 			$sql .= "AND DI.itemID IS NULL ";
 			
