@@ -1962,7 +1962,7 @@ class Zotero_Items {
 		$isNew = !$item || !$item->version;
 		
 		if (!is_object($json)) {
-			throw new Exception("Invalid item object (found " . gettype($json) . " '" . $json . "')", Z_ERROR_INVALID_INPUT);
+			throw new Exception("Invalid item object (found " . gettype($json) . " '" . json_encode($json) . "')", Z_ERROR_INVALID_INPUT);
 		}
 		
 		if (isset($json->items) && is_array($json->items)) {
