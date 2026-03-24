@@ -259,12 +259,12 @@ class Zotero_Users {
 		}
 
 		// Primary email first (sortOrder 0), then additional validated
-		// emails sorted by verification date
-		$sql = "SELECT email, 0 AS sortOrder, NULL AS dateVerified FROM users WHERE userID=? "
+		// emails sorted by date added
+		$sql = "SELECT email, 0 AS sortOrder, NULL AS dateAdded FROM users WHERE userID=? "
 			. "UNION "
-			. "SELECT email, 1 AS sortOrder, dateVerified FROM users_email "
+			. "SELECT email, 1 AS sortOrder, dateAdded FROM users_email "
 			. "WHERE userID=? AND validated=1 "
-			. "ORDER BY sortOrder, dateVerified";
+			. "ORDER BY sortOrder, dateAdded";
 		$params = [$userID, $userID];
 		try {
 			$rows = Zotero_WWW_DB_2::query($sql, $params);
