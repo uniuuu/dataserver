@@ -215,6 +215,10 @@ class Zotero_LoginSessions {
 			'userID' => $session->userID,
 			'username' => Zotero_Users::getUsername($session->userID)
 		];
+		$emails = Zotero_Users::getEmails($session->userID);
+		if ($emails !== false) {
+			$message['emails'] = $emails;
+		}
 
 		$channel = "login-session:" . $session->sessionToken;
 		$redis->publish($channel, json_encode($message, JSON_UNESCAPED_SLASHES));
