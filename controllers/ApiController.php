@@ -519,7 +519,7 @@ class ApiController extends Controller {
 		// Start read snapshot after init so that writes during authentication
 		// (e.g., logAccess) auto-commit instead of being trapped in the snapshot
 		// transaction, which would be lost when close() drops the master connection.
-		if ($this->method == 'GET') {
+		if (Zotero_DB::isReadOnly()) {
 			Zotero_DB::beginReadSnapshot();
 		}
 
