@@ -515,7 +515,14 @@ class ApiController extends Controller {
 		if ($this->objectLibraryID) {
 			Zotero_DB::close();
 		}
-		
+
+		// Start read snapshot after init so that writes during authentication
+		// (e.g., logAccess) auto-commit instead of being trapped in the snapshot
+		// transaction, which would be lost when close() drops the master connection.
+		if ($this->method == 'GET') {
+			Zotero_DB::beginReadSnapshot();
+		}
+
 		header("Zotero-API-Version: " . $version);
 		StatsD::increment("api.request.version.v" . $version, 0.25);
 		
