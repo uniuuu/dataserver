@@ -30,7 +30,6 @@ class Zotero_Key {
 	private $userID;
 	private $name;
 	private $dateAdded;
-	private $lastUsed;
 	private $permissions = array();
 	
 	private $loaded = false;
@@ -578,8 +577,8 @@ class Zotero_Key {
 		if ($isWebsite) {
 			$row = $this->getDates();
 			$json['dateAdded'] = Zotero_Date::sqlToISO8601($row['dateAdded']);
-			if ($row['lastUsed'] != '0000-00-00 00:00:00') {
-				$json['lastUsed'] =  Zotero_Date::sqlToISO8601($row['lastUsed']);
+			if ($row['lastUsed']) {
+				$json['lastUsed'] = Zotero_Date::sqlToISO8601($row['lastUsed']);
 			}
 			
 			$ips = $this->getRecentIPs();
@@ -701,9 +700,7 @@ class Zotero_Key {
 	
 	
 	private function getDates() {
-		// Get more recent of `keys.lastUsed` and latest `keyAccessLog.timestamp` while we prepare
-		// to remove lastUsed
-		$sql = "SELECT dateAdded, GREATEST(lastUsed, IFNULL(timestamp, TIMESTAMP('0000-00-00 00:00:00'))) AS lastUsed "
+		$sql = "SELECT dateAdded, timestamp AS lastUsed "
 			. "FROM `keys` LEFT JOIN keyAccessLog USING (keyID) "
 			. "WHERE keyID=? "
 			. "ORDER BY timestamp DESC LIMIT 1";
