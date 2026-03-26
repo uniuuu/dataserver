@@ -261,7 +261,7 @@ class Zotero_Users {
 		// Primary email first (sortOrder 0), then additional validated
 		// emails sorted by date added
 		$sql = "SELECT email, 0 AS sortOrder, NULL AS dateAdded FROM users WHERE userID=? "
-			. "UNION "
+			. "UNION ALL "
 			. "SELECT email, 1 AS sortOrder, dateAdded FROM users_email "
 			. "WHERE userID=? AND validated=1 "
 			. "ORDER BY sortOrder, dateAdded";
