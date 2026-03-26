@@ -527,9 +527,11 @@ class Zotero_Key {
 		$json['userID'] = $this->userID;
 		$json['username'] = Zotero_Users::getUsername($this->userID);
 		$json['displayName'] = Zotero_Users::getRealName($this->userID);
-		$emails = Zotero_Users::getEmails($this->userID);
-		if ($emails !== false) {
-			$json['emails'] = $emails;
+		if (!empty($options['includeEmails'])) {
+			$emails = Zotero_Users::getEmails($this->userID);
+			if ($emails !== false) {
+				$json['emails'] = $emails;
+			}
 		}
 		$json['name'] = $this->name;
 		
