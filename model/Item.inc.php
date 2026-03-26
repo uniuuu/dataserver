@@ -1601,7 +1601,7 @@ class Zotero_Item extends Zotero_DataObject {
 							$tagObj = new Zotero_Tag;
 							$tagObj->libraryID = $this->_libraryID;
 							$tagObj->name = $tag->name;
-							$tagObj->type = (int) $tag->type ? $tag->type : 0;
+							$tagObj->type = (int) ($tag->type ? $tag->type : 0);
 						}
 						$tagObj->addItem($this->_key);
 						$tagObj->save();
@@ -3807,7 +3807,7 @@ class Zotero_Item extends Zotero_DataObject {
 			}
 			else {
 				$obj->name = trim($newTag->tag);
-				$obj->type = (int) isset($newTag->type) ? $newTag->type : 0;
+				$obj->type = (int) (isset($newTag->type) ? $newTag->type : 0);
 			}
 			$this->tags[] = $obj;
 		}
