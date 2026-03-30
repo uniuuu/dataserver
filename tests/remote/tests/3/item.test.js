@@ -2570,6 +2570,47 @@ describe('Items', function () {
 		assert.lengthOf(responseJSON, 0);
 	});
 
+	it('should ignore invalid keys in itemKey parameter for GET', async function () {
+		let json = await API.createItem('book', false, 'jsonData');
+		let validKey = json.key;
+
+		let invalidKeys = ['0aB1cDeF', 'tZ37uYyQ'];
+		let allKeys = [validKey, ...invalidKeys].join(',');
+
+		let response = await API.userGet(
+			config.get('userID'),
+			`items?itemKey=${allKeys}`
+		);
+		assert200(response);
+		let responseJSON = API.getJSONFromResponse(response);
+		assert.lengthOf(responseJSON, 1);
+		assert.equal(responseJSON[0].key, validKey);
+	});
+
+	it('should ignore invalid keys in itemKey parameter for DELETE', async function () {
+		let json = await API.createItem('book', false, 'jsonData');
+		let validKey = json.key;
+		let version = json.version;
+
+		let invalidKeys = ['0aB1cDeF', 'tZ37uYyQ', '8ECE13BC'];
+		let allKeys = [validKey, ...invalidKeys].join(',');
+
+		let response = await API.userDelete(
+			config.get('userID'),
+			`items?itemKey=${allKeys}`,
+			[`If-Unmodified-Since-Version: ${version}`]
+		);
+		assert204(response);
+
+		// Valid item should be deleted
+		response = await API.userGet(
+			config.get('userID'),
+			`items?itemKey=${validKey}`
+		);
+		assert200(response);
+		assert.lengthOf(API.getJSONFromResponse(response), 0);
+	});
+
 	// PHP: test_deleting_user_library_attachment_should_delete_lastPageIndex_setting
 	it('should delete last page index setting when deleting user library attachment', async function () {
 		let json = await API.createAttachmentItem(
