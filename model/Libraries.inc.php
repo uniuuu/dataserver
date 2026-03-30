@@ -456,7 +456,9 @@ class Zotero_Libraries {
 		}
 		
 		Zotero_FullText::deleteByLibrary($libraryID);
-		
+
+		Zotero_DB::query("DELETE FROM storageFileLibraries WHERE libraryID=?", $libraryID);
+
 		self::updateVersionAndTimestamp($libraryID);
 		
 		Zotero_Notifier::trigger("clear", "library", $libraryID);
