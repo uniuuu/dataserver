@@ -437,17 +437,22 @@ class Zotero_Libraries {
 				Zotero_DB::query($sql, $libraryID, $shardID);
 			}
 			catch (Exception $e) {
-				// ON DELETE CASCADE will only go 15 levels deep, so if we get an FK error, try
-				// deleting subcollections first, starting with the most recent, which isn't foolproof
-				// but will probably almost always do the trick.
+				// ON DELETE CASCADE will only go 15 levels deep, so if we get an FK error,
+				// iteratively delete leaf collections (those with no children) until all are gone.
 				if ($table == 'collections'
 						// Newer MySQL
 						&& (strpos($e->getMessage(), "Foreign key cascade delete/update exceeds max depth") !== false
 						// Older MySQL
 						|| strpos($e->getMessage(), "Cannot delete or update a parent row") !== false)) {
-					$sql = "DELETE FROM collections WHERE libraryID=? "
-						. "ORDER BY parentCollectionID IS NULL, collectionID DESC";
-					Zotero_DB::query($sql, $libraryID, $shardID);
+					do {
+						$deleted = Zotero_DB::query(
+							"DELETE c FROM collections c "
+								. "LEFT JOIN collections c2 ON c.collectionID = c2.parentCollectionID "
+								. "WHERE c.libraryID=? AND c2.collectionID IS NULL",
+							$libraryID,
+							$shardID
+						);
+					} while ($deleted);
 				}
 				else {
 					throw $e;
