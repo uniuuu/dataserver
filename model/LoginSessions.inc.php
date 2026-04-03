@@ -226,6 +226,28 @@ class Zotero_LoginSessions {
 
 
 	/**
+	 * Send Redis notification for login session cancellation
+	 *
+	 * @param Zotero_LoginSession $session
+	 */
+	public static function sendCancelNotification($session) {
+		$redis = Z_Redis::get('notifications');
+		if (!$redis) {
+			Z_Core::logError('Error: Failed to get Redis client for login cancel notification');
+			return;
+		}
+
+		$message = [
+			'event' => 'loginCancelled',
+			'topic' => 'login-session:' . $session->sessionToken,
+		];
+
+		$channel = "login-session:" . $session->sessionToken;
+		$redis->publish($channel, json_encode($message, JSON_UNESCAPED_SLASHES));
+	}
+
+
+	/**
 	 * Clean up expired sessions (for cron job)
 	 *
 	 * @return int Number of sessions updated
