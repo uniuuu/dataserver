@@ -549,6 +549,7 @@ class Zotero_Storage {
 		// storageFileItems row is harmless, but the reverse could cause incorrect
 		// purging of in-use files.
 		self::addFileLibraryReference($storageFileID, $item->libraryID);
+		self::updateLastAdded($storageFileID);
 
 		Zotero_Libraries::updateVersionAndTimestamp($item->libraryID);
 		
