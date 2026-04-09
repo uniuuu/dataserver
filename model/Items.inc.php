@@ -1831,7 +1831,7 @@ class Zotero_Items {
 					if (!$val) {
 						continue 2;
 					}
-					$item->attachmentStorageModTime = $val;
+					$item->attachmentStorageModTime = (int) $val;
 					break;
 
 				case 'lastRead':
