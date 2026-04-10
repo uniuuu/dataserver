@@ -230,7 +230,6 @@ class Zotero_Settings extends Zotero_ClassicDataObjects {
 			break;
 		
 		// Array settings
-		case 'autoRenameFilesFileTypes':
 		case 'readerCustomThemes':
 		case 'tagColors':
 			if (!is_array($value)) {
