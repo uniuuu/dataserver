@@ -1682,6 +1682,46 @@ describe('Items', function () {
 		);
 	});
 
+	it('should update lastModifiedByUser for Zotero client with dateModified', async function () {
+		let groupID = config.get('ownedPrivateGroupID');
+
+		// Create item as user 1
+		let json = await API.groupCreateItem(groupID, 'book', {}, 'json');
+		let key = json.key;
+		let version = json.version;
+
+		// Edit a field as user 2, emulating a desktop client sync upload:
+		// new dateModified in JSON + Zotero User-Agent
+		API.useAPIKey(config.get('user2APIKey'));
+		let newDateModified = new Date(Date.now() + 1000).toISOString().replace(/\.\d+Z$/, 'Z');
+		let response = await API.groupPost(
+			groupID,
+			'items',
+			JSON.stringify([{
+				key,
+				version,
+				title: 'Modified Title',
+				dateModified: newDateModified
+			}]),
+			[
+				'Content-Type: application/json',
+				'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15) Zotero/9.0'
+			]
+		);
+		assert200(response);
+		json = API.getJSONFromResponse(response);
+		assert.equal(
+			json.successful[0].data.dateModified,
+			newDateModified,
+			'client-supplied dateModified not preserved'
+		);
+		assert.equal(
+			json.successful[0].meta.lastModifiedByUser.id,
+			config.get('userID2'),
+			'lastModifiedByUser not updated for Zotero client edit with dateModified'
+		);
+	});
+
 	it('should update lastModifiedByUser when trashing', async function () {
 		let groupID = config.get('ownedPrivateGroupID');
 

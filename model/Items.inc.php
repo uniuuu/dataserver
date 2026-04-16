@@ -1885,20 +1885,23 @@ class Zotero_Items {
 			$item->inPublications = !empty($json->inPublications);
 		}
 		
-		// Skip "Date Modified" update if only certain fields were updated (e.g., collections)
-		$skipDateModifiedUpdate = $dateModifiedProvided || !sizeOf(array_diff(
+		// Skip "Date Modified" and "Modified By" updates if only certain fields were updated
+		// (e.g., collections)
+		$skipLastModifiedByUserIDUpdate = !sizeOf(array_diff(
 			$item->getChanged(),
 			['collections', 'inPublications', 'relations']
 		));
-		
+		$skipDateModifiedUpdate = $dateModifiedProvided || $skipLastModifiedByUserIDUpdate;
+
 		if ($item->hasChanged() && !$skipDateModifiedUpdate
 				&& (($apiVersion >= 3 && $tmpZoteroClientDateModifiedHack) || !$changedDateModified)) {
 			// Update item with the current timestamp
 			$item->dateModified = Zotero_DB::getTransactionTimestamp();
 		}
-		
+
 		$changed = $item->save($userID, [
-			'skipDateModifiedUpdate' => $skipDateModifiedUpdate
+			'skipDateModifiedUpdate' => $skipDateModifiedUpdate,
+			'skipLastModifiedByUserIDUpdate' => $skipLastModifiedByUserIDUpdate
 		]) || $changed;
 		
 		// Additional steps that have to be performed on a saved object

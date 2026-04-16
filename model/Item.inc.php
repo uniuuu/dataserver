@@ -1682,10 +1682,10 @@ class Zotero_Item extends Zotero_DataObject {
 				
 				$this->_serverDateModified = $timestamp;
 				
-				// Group item data -- only update lastModifiedByUserID if dateModified
-				// was updated (i.e., not for collection membership, trash, etc.)
+				// Group item data -- skip lastModifiedByUserID update for changes that
+				// don't count as modifying the item (e.g., collection membership, relations)
 				if ($isGroupLibrary && $userID
-						&& empty($options['skipDateModifiedUpdate'])) {
+						&& empty($options['skipLastModifiedByUserIDUpdate'])) {
 					$sql = "INSERT INTO groupItems VALUES (?, ?, ?)
 								ON DUPLICATE KEY UPDATE lastModifiedByUserID=?";
 					Zotero_DB::query($sql, array($this->_id, null, $userID, $userID), $shardID);
@@ -2429,7 +2429,10 @@ class Zotero_Item extends Zotero_DataObject {
 	 */
 	public function updateVersion($userID) {
 		$this->changed['version'] = true;
-		$this->save($userID, ['skipDateModifiedUpdate' => true]);
+		$this->save($userID, [
+			'skipDateModifiedUpdate' => true,
+			'skipLastModifiedByUserIDUpdate' => true
+		]);
 	}
 	
 	
