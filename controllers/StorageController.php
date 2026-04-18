@@ -59,6 +59,16 @@ class StorageController extends ApiController {
 	
 	
 	public function removestoragefiles() {
+		if (!$this->permissions->isSuper()) {
+			if (Zotero_Libraries::getType($this->objectLibraryID) != 'user') {
+				$this->e400("removestoragefiles is only valid for user libraries");
+			}
+			if (!$this->permissions->canAccess($this->objectLibraryID, 'files')
+					|| !$this->permissions->canWrite($this->objectLibraryID)) {
+				$this->e403();
+			}
+		}
+
 		$this->allowMethods(array('POST'));
 		$sql = "DELETE SFI FROM storageFileItems SFI JOIN items USING (itemID) WHERE libraryID=?";
 		Zotero_DB::query($sql, $this->objectLibraryID, Zotero_Shards::getByLibraryID($this->objectLibraryID));
