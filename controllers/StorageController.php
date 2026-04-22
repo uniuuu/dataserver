@@ -33,31 +33,7 @@ class StorageController extends ApiController {
 	//
 	// Storage-related
 	//
-	
-	public function laststoragesync() {
-		$this->allowMethods(array('GET', 'POST'));
-		
-		// Uninitialized publications library
-		if (!$this->objectLibraryID) {
-			$this->e404();
-		}
-		
-		// Deprecated after 3.0, which used auth=1
-		if ($this->apiVersion < 2 || !empty($_GET['auth'])) {
-			$lastSync = Zotero_Users::getLastStorageSync($this->objectUserID);
-		}
-		else {
-			$lastSync = Zotero_Libraries::getLastStorageSync($this->objectLibraryID);
-		}
-		if (!$lastSync) {
-			$this->e404();
-		}
-		
-		echo $lastSync;
-		exit;
-	}
-	
-	
+
 	public function removestoragefiles() {
 		if (!$this->permissions->isSuper()) {
 			if (Zotero_Libraries::getType($this->objectLibraryID) != 'user') {

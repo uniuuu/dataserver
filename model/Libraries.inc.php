@@ -320,16 +320,6 @@ class Zotero_Libraries {
 	}
 	
 	
-	public static function getLastStorageSync($libraryID) {
-		$sql = "SELECT UNIX_TIMESTAMP(serverDateModified) AS time FROM items
-				JOIN storageFileItems USING (itemID) WHERE libraryID=?
-				ORDER BY time DESC LIMIT 1";
-		return Zotero_DB::valueQuery(
-			$sql, $libraryID, Zotero_Shards::getByLibraryID($libraryID)
-		);
-	}
-	
-	
 	public static function toJSON($libraryID) {
 		if (isset(self::$libraryJSONCache[$libraryID])) {
 			return self::$libraryJSONCache[$libraryID];

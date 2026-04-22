@@ -169,7 +169,6 @@ class ApiController extends Controller {
 			if ($this->body == ""
 					&& !in_array($this->action, array(
 						'clear',
-						'laststoragesync',
 						'removestoragefiles',
 						'itemContent',
 						'sessions'))) {
