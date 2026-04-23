@@ -4196,7 +4196,7 @@ class Zotero_Item extends Zotero_DataObject {
 			$requestParams['schemaVersion'] ?? null
 		);
 
-		$cacheVersion = 7;
+		$cacheVersion = 8;
 		$cacheKey = "jsonEntry_" . $this->libraryID . "/" . $this->id . "_"
 			. md5(
 				$version
